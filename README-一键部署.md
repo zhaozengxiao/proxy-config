@@ -12,9 +12,25 @@
 
 ## 快速开始
 
-在**目标服务器**上(需 root):
+在**目标服务器**上以 root 运行。
+
+**方式一:一键执行(推荐)**
 
 ```bash
+bash <(curl -sL https://raw.githubusercontent.com/zhaozengxiao/proxy-config/main/install.sh)
+```
+
+带参数:
+
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/zhaozengxiao/proxy-config/main/install.sh) --skip-tuning
+bash <(curl -sL https://raw.githubusercontent.com/zhaozengxiao/proxy-config/main/install.sh) --status
+```
+
+**方式二:先下载再执行**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zhaozengxiao/proxy-config/main/install.sh -o install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
