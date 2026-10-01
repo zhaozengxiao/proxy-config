@@ -17,6 +17,16 @@
 
 set -euo pipefail
 
+# ---------- 自身标识 ----------
+# 通过 bash <(curl ...) 或管道运行时,$0 会变成 /dev/fd/63 或 bash,
+# 这里统一替换成对用户有意义的显示名,仅用于提示文字。
+SELF="$0"
+case "$SELF" in
+  /dev/fd/*|/proc/*/fd/*|bash|sh|*/bash|*/sh) SELF="install.sh" ;;
+esac
+# 在线直链(用于打印一键命令,可用环境变量覆盖)
+RAW_URL="${RAW_URL:-https://raw.githubusercontent.com/zhaozengxiao/proxy-config/main/install.sh}"
+
 # ---------- 可调参数 ----------
 SINGBOX_VERSION="${SINGBOX_VERSION:-1.13.21}"
 REALITY_PORT="${REALITY_PORT:-443}"
@@ -56,6 +66,36 @@ err()   { echo -e "${R}[✗]${N} $*" >&2; }
 die()   { err "$*"; exit 1; }
 step()  { echo; echo -e "${B}==== $* ====${N}"; }
 
+# 用法说明(内嵌,确保 bash <(curl ...) 进程替换下也能正常显示)
+usage() {
+  local cmd="bash <(curl -sL ${RAW_URL})"
+  cat <<EOF
+${B}东京 Lightsail 一键部署:VLESS-Reality + Hysteria2${N}
+
+适用: Ubuntu 22.04/24.04,x86_64,小内存 VPS(≥384MB)
+特性: 幂等(可重复执行)、自动选 SNI、自动验证、失败自动回滚
+
+一键执行:
+    ${cmd}
+
+带参数:
+    ${cmd} --skip-tuning      # 跳过内核调优
+    ${cmd} --skip-firewall    # 跳过防火墙(慎用)
+    ${cmd} --no-hysteria2     # 只要 Reality
+    ${cmd} --status           # 只看状态
+    ${cmd} --credentials      # 只打印凭据
+
+也可先下载再执行:
+    curl -fsSL ${RAW_URL} -o install.sh && sudo bash install.sh
+
+可用环境变量覆盖:
+    SNI=www.apple.com         指定 Reality 伪装 SNI
+    REALITY_PORT=443          Reality 端口
+    HY2_PORT=443              Hysteria2 端口
+    SINGBOX_VERSION=1.13.21   指定 sing-box 版本
+EOF
+}
+
 # ---------- 解析参数 ----------
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -64,14 +104,14 @@ while [[ $# -gt 0 ]]; do
     --no-hysteria2)   INSTALL_HYSTERIA2=0 ;;
     --status)         ACTION=status ;;
     --credentials)    ACTION=credentials ;;
-    -h|--help)        sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)        usage; exit 0 ;;
     *) die "未知参数: $1(用 --help 查看用法)" ;;
   esac
   shift
 done
 ACTION="${ACTION:-install}"
 
-[[ $EUID -eq 0 ]] || die "请用 root 运行: sudo $0"
+[[ $EUID -eq 0 ]] || die "请用 root 运行: sudo bash <(curl -sL ${RAW_URL})"
 
 # ---------- 环境检查 ----------
 check_env() {
@@ -289,7 +329,7 @@ detect_sni() {
       warn "不可用"
     fi
   done
-  die "所有候选 SNI 均不可用。请手动指定:SNI=你的目标 sudo -E $0"
+  die "所有候选 SNI 均不可用。请手动指定:SNI=你的目标 sudo -E bash <(curl -sL ${RAW_URL})"
 }
 
 generate_config() {
@@ -732,8 +772,8 @@ main() {
   echo "============================================================"
   ok "部署完成!"
   echo "============================================================"
-  echo "  查看状态: sudo $0 --status"
-  echo "  查看凭据: sudo $0 --credentials"
+  echo "  查看状态: sudo ${SELF} --status"
+  echo "  查看凭据: sudo ${SELF} --credentials"
   echo "  重启服务: sudo systemctl restart sing-box"
   echo "  查看日志: sudo journalctl -u sing-box -f"
   echo
