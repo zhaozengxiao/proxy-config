@@ -319,6 +319,19 @@ EOF
 
 detect_sni() {
   step "阶段 3/6:实测选择 Reality 伪装目标"
+
+  # 用户通过 SNI=... 显式指定时,优先实测该目标
+  if [[ -n "${SNI:-}" ]]; then
+    info "使用指定的 SNI:${SNI}"
+    printf '  %-24s ' "$SNI"
+    if probe_sni "$SNI"; then
+      ok "可用"
+      CHOSEN_SNI="$SNI"
+      return 0
+    fi
+    die "指定的 SNI(${SNI})无法完成 Reality 握手,请换一个目标,例如:SNI=www.apple.com"
+  fi
+
   for sni in "${SNI_CANDIDATES[@]}"; do
     printf '  %-24s ' "$sni"
     if probe_sni "$sni"; then
@@ -329,7 +342,7 @@ detect_sni() {
       warn "不可用"
     fi
   done
-  die "所有候选 SNI 均不可用。请手动指定:SNI=你的目标 sudo -E bash <(curl -sL ${RAW_URL})"
+  die "所有候选 SNI 均不可用。请手动指定,例如:sudo SNI=www.apple.com bash <(curl -sL ${RAW_URL})"
 }
 
 generate_config() {
